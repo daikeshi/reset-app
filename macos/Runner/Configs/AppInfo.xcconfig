@@ -8,7 +8,7 @@
 PRODUCT_NAME = reset
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.reset.reset
+PRODUCT_BUNDLE_IDENTIFIER = com.squirreljet.reset
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2026 com.reset. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2026 SquirrelJet LLC. All rights reserved.

@@ -22,6 +22,13 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  static final Uri _privacyPolicyUri = Uri.parse(
+    'https://squirreljet.com/reset/privacy/',
+  );
+  static final Uri _supportUri = Uri.parse(
+    'https://squirreljet.com/reset/support/',
+  );
+
   bool _isSaving = false;
 
   Future<void> _runSettingUpdate(Future<void> Function() update) async {
@@ -51,14 +58,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  Future<void> _openStore() async {
-    final uri = Uri.parse('https://apps.apple.com');
-    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!launched && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open the App Store link')),
+  Future<void> _openExternalLink(Uri uri, String label) async {
+    try {
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
       );
+      if (launched || !mounted) {
+        return;
+      }
+    } on PlatformException {
+      if (!mounted) {
+        return;
+      }
     }
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Could not open $label')));
   }
 
   @override
@@ -136,10 +153,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             _MinuteStepperTile(
                               title: 'Focus Time',
                               value: settings.reminderIntervalMinutes,
-                              minValue:
-                                  UserSettings.minReminderIntervalMinutes,
-                              maxValue:
-                                  UserSettings.maxReminderIntervalMinutes,
+                              minValue: UserSettings.minReminderIntervalMinutes,
+                              maxValue: UserSettings.maxReminderIntervalMinutes,
                               decrementKey: const ValueKey(
                                 'focus-time-decrement',
                               ),
@@ -150,8 +165,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               onChanged: _isSaving
                                   ? null
                                   : (value) => _runSettingUpdate(
-                                      () => widget.appState
-                                          .setReminderInterval(value),
+                                      () => widget.appState.setReminderInterval(
+                                        value,
+                                      ),
                                     ),
                             ),
                             const _TileDivider(),
@@ -166,9 +182,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               incrementKey: const ValueKey(
                                 'break-duration-increment',
                               ),
-                              inputKey: const ValueKey(
-                                'break-duration-input',
-                              ),
+                              inputKey: const ValueKey('break-duration-input'),
                               onChanged: _isSaving
                                   ? null
                                   : (value) => _runSettingUpdate(
@@ -205,19 +219,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               title: Text('Version'),
                               trailing: Text('1.0.0'),
                             ),
-                            const _TileDivider(),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        _SettingsSection(
+                          title: 'Help & Legal',
+                          children: [
                             ListTile(
+                              key: const ValueKey('privacy-policy-link'),
                               contentPadding: EdgeInsets.zero,
-                              title: const Text('Rate Reset'),
+                              leading: const Icon(Icons.privacy_tip_outlined),
+                              title: const Text('Privacy Policy'),
+                              subtitle: const Text(
+                                'Learn how Reset handles your data',
+                              ),
                               trailing: const Icon(Icons.open_in_new_rounded),
-                              onTap: _openStore,
+                              onTap: () => _openExternalLink(
+                                _privacyPolicyUri,
+                                'the Privacy Policy',
+                              ),
                             ),
                             const _TileDivider(),
                             ListTile(
+                              key: const ValueKey('support-link'),
                               contentPadding: EdgeInsets.zero,
-                              title: const Text('Share App'),
+                              leading: const Icon(Icons.help_outline_rounded),
+                              title: const Text('Support'),
+                              subtitle: const Text('Get help with Reset'),
                               trailing: const Icon(Icons.open_in_new_rounded),
-                              onTap: _openStore,
+                              onTap: () =>
+                                  _openExternalLink(_supportUri, 'Support'),
                             ),
                           ],
                         ),

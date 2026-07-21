@@ -69,6 +69,10 @@ void main() {
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
     expect(find.text('Focus Time'), findsOneWidget);
+    expect(find.text('Privacy Policy'), findsOneWidget);
+    expect(find.text('Support'), findsOneWidget);
+    expect(find.byKey(const ValueKey('privacy-policy-link')), findsOneWidget);
+    expect(find.byKey(const ValueKey('support-link')), findsOneWidget);
   });
 
   testWidgets('settings can adjust focus time in one minute increments', (
@@ -132,7 +136,10 @@ void main() {
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.byKey(const ValueKey('focus-time-input')), '72');
+    await tester.enterText(
+      find.byKey(const ValueKey('focus-time-input')),
+      '72',
+    );
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
     expect(state.settings.reminderIntervalMinutes, 72);
@@ -178,7 +185,10 @@ void main() {
     }
 
     await pumpAt(const Size(390, 844));
-    expect(find.byKey(const ValueKey('reset-bottom-navigation')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('reset-bottom-navigation')),
+      findsOneWidget,
+    );
     expect(find.byKey(const ValueKey('reset-navigation-rail')), findsNothing);
 
     await pumpAt(const Size(834, 1194));
