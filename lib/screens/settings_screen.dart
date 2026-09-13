@@ -32,30 +32,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isSaving = false;
 
   Future<void> _runSettingUpdate(Future<void> Function() update) async {
+    if (_isSaving) return;
     setState(() => _isSaving = true);
-    await update();
-    if (!mounted) {
-      return;
+    try {
+      await update();
+      final error = widget.appState.notificationError;
+      if (error != null && mounted) _showError(error);
+    } catch (_) {
+      if (mounted) _showError('Could not save settings. Please try again.');
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+        widget.onChanged();
+      }
     }
-    setState(() => _isSaving = false);
-    widget.onChanged();
   }
 
-  Future<void> _setNotificationsEnabled(bool value) async {
-    setState(() => _isSaving = true);
-    final enabled = await widget.appState.setNotificationsEnabled(value);
-    if (!mounted) {
-      return;
-    }
-    setState(() => _isSaving = false);
-    widget.onChanged();
-    if (value && !enabled) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Notification permission was not granted'),
-        ),
-      );
-    }
+  Future<void> _setNotificationsEnabled(bool value) {
+    return _runSettingUpdate(() async {
+      final enabled = await widget.appState.setNotificationsEnabled(value);
+      if (mounted &&
+          value &&
+          !enabled &&
+          widget.appState.notificationError == null) {
+        _showError(
+          'Notification permission was not granted. Enable it in system settings.',
+        );
+      }
+    });
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _openExternalLink(Uri uri, String label) async {
@@ -100,165 +110,166 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
       body: DecoratedBox(
         decoration: ResetDecorations.screen(),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final maxContentWidth = constraints.maxWidth >= 900
-                ? 760.0
-                : double.infinity;
+        child: SafeArea(
+          top: false,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final maxContentWidth = constraints.maxWidth >= 900
+                  ? 760.0
+                  : double.infinity;
 
-            return ListView(
-              padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
-              children: [
-                Center(
-                  child: SizedBox(
-                    width: maxContentWidth,
-                    child: Column(
-                      children: [
-                        _SettingsSection(
-                          title: 'Reminders',
-                          children: [
-                            SwitchListTile(
-                              contentPadding: EdgeInsets.zero,
-                              title: const Text('Enable Notifications'),
-                              subtitle: settings.notificationsEnabled
-                                  ? const Text('Break reminders are scheduled')
-                                  : const Text(
-                                      'Turn on reminders for healthy breaks',
-                                    ),
-                              value: settings.notificationsEnabled,
-                              onChanged: _isSaving
-                                  ? null
-                                  : _setNotificationsEnabled,
-                            ),
-                            const _TileDivider(),
-                            SwitchListTile(
-                              contentPadding: EdgeInsets.zero,
-                              title: const Text('Sound'),
-                              value: settings.soundEnabled,
-                              onChanged:
-                                  !settings.notificationsEnabled || _isSaving
-                                  ? null
-                                  : (value) => _runSettingUpdate(
-                                      () => widget.appState.setSoundEnabled(
-                                        value,
+              return ListView(
+                padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
+                children: [
+                  Center(
+                    child: SizedBox(
+                      width: maxContentWidth,
+                      child: Column(
+                        children: [
+                          _SettingsSection(
+                            title: 'Reminders',
+                            children: [
+                              SwitchListTile(
+                                contentPadding: EdgeInsets.zero,
+                                title: const Text('Enable Notifications'),
+                                subtitle: settings.notificationsEnabled
+                                    ? const Text(
+                                        'Break reminders are scheduled',
+                                      )
+                                    : const Text(
+                                        'Turn on reminders for healthy breaks',
                                       ),
-                                    ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        _SettingsSection(
-                          title: 'Timing',
-                          children: [
-                            _MinuteStepperTile(
-                              title: 'Focus Time',
-                              value: settings.reminderIntervalMinutes,
-                              minValue: UserSettings.minReminderIntervalMinutes,
-                              maxValue: UserSettings.maxReminderIntervalMinutes,
-                              decrementKey: const ValueKey(
-                                'focus-time-decrement',
+                                value: settings.notificationsEnabled,
+                                onChanged: _isSaving
+                                    ? null
+                                    : _setNotificationsEnabled,
                               ),
-                              incrementKey: const ValueKey(
-                                'focus-time-increment',
-                              ),
-                              inputKey: const ValueKey('focus-time-input'),
-                              onChanged: _isSaving
-                                  ? null
-                                  : (value) => _runSettingUpdate(
-                                      () => widget.appState.setReminderInterval(
-                                        value,
+                              const _TileDivider(),
+                              SwitchListTile(
+                                contentPadding: EdgeInsets.zero,
+                                title: const Text('Sound'),
+                                value: settings.soundEnabled,
+                                onChanged:
+                                    !settings.notificationsEnabled || _isSaving
+                                    ? null
+                                    : (value) => _runSettingUpdate(
+                                        () => widget.appState.setSoundEnabled(
+                                          value,
+                                        ),
                                       ),
-                                    ),
-                            ),
-                            const _TileDivider(),
-                            _MinuteStepperTile(
-                              title: 'Break Duration',
-                              value: settings.breakDurationMinutes,
-                              minValue: UserSettings.minBreakDurationMinutes,
-                              maxValue: UserSettings.maxBreakDurationMinutes,
-                              decrementKey: const ValueKey(
-                                'break-duration-decrement',
                               ),
-                              incrementKey: const ValueKey(
-                                'break-duration-increment',
-                              ),
-                              inputKey: const ValueKey('break-duration-input'),
-                              onChanged: _isSaving
-                                  ? null
-                                  : (value) => _runSettingUpdate(
-                                      () => widget.appState.setBreakDuration(
-                                        value,
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          _SettingsSection(
+                            title: 'Timing',
+                            children: [
+                              _MinuteStepperTile(
+                                title: 'Focus Time',
+                                value: settings.reminderIntervalMinutes,
+                                minValue:
+                                    UserSettings.minReminderIntervalMinutes,
+                                maxValue:
+                                    UserSettings.maxReminderIntervalMinutes,
+                                decrementKey: const ValueKey(
+                                  'focus-time-decrement',
+                                ),
+                                incrementKey: const ValueKey(
+                                  'focus-time-increment',
+                                ),
+                                inputKey: const ValueKey('focus-time-input'),
+                                onChanged: _isSaving
+                                    ? null
+                                    : (value) => _runSettingUpdate(
+                                        () => widget.appState
+                                            .setReminderInterval(value),
                                       ),
-                                    ),
-                            ),
-                            const _TileDivider(),
-                            ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              title: const Text('Quiet Hours'),
-                              subtitle: const Text(
-                                'No reminders during these hours',
                               ),
-                              trailing: Text(
-                                '${settings.quietHoursStart} - '
-                                '${settings.quietHoursEnd}',
-                                style: Theme.of(context).textTheme.bodyMedium
-                                    ?.copyWith(
-                                      color: ResetColors.muted,
-                                      fontWeight: FontWeight.w700,
-                                    ),
+                              const _TileDivider(),
+                              _MinuteStepperTile(
+                                title: 'Break Duration',
+                                value: settings.breakDurationMinutes,
+                                minValue: UserSettings.minBreakDurationMinutes,
+                                maxValue: UserSettings.maxBreakDurationMinutes,
+                                decrementKey: const ValueKey(
+                                  'break-duration-decrement',
+                                ),
+                                incrementKey: const ValueKey(
+                                  'break-duration-increment',
+                                ),
+                                inputKey: const ValueKey(
+                                  'break-duration-input',
+                                ),
+                                onChanged: _isSaving
+                                    ? null
+                                    : (value) => _runSettingUpdate(
+                                        () => widget.appState.setBreakDuration(
+                                          value,
+                                        ),
+                                      ),
                               ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        _SettingsSection(
-                          title: 'App',
-                          children: [
-                            const ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              title: Text('Version'),
-                              trailing: Text('1.0.0'),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        _SettingsSection(
-                          title: 'Help & Legal',
-                          children: [
-                            ListTile(
-                              key: const ValueKey('privacy-policy-link'),
-                              contentPadding: EdgeInsets.zero,
-                              leading: const Icon(Icons.privacy_tip_outlined),
-                              title: const Text('Privacy Policy'),
-                              subtitle: const Text(
-                                'Learn how Reset handles your data',
+                              const _TileDivider(),
+                              ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                title: const Text('Quiet Hours'),
+                                subtitle: Text(
+                                  '${settings.quietHoursStart} - '
+                                  '${settings.quietHoursEnd}\n'
+                                  'Display only; reminders continue overnight',
+                                ),
                               ),
-                              trailing: const Icon(Icons.open_in_new_rounded),
-                              onTap: () => _openExternalLink(
-                                _privacyPolicyUri,
-                                'the Privacy Policy',
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          _SettingsSection(
+                            title: 'App',
+                            children: [
+                              const ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                title: Text('Version'),
+                                trailing: Text('1.0.0'),
                               ),
-                            ),
-                            const _TileDivider(),
-                            ListTile(
-                              key: const ValueKey('support-link'),
-                              contentPadding: EdgeInsets.zero,
-                              leading: const Icon(Icons.help_outline_rounded),
-                              title: const Text('Support'),
-                              subtitle: const Text('Get help with Reset'),
-                              trailing: const Icon(Icons.open_in_new_rounded),
-                              onTap: () =>
-                                  _openExternalLink(_supportUri, 'Support'),
-                            ),
-                          ],
-                        ),
-                      ],
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          _SettingsSection(
+                            title: 'Help & Legal',
+                            children: [
+                              ListTile(
+                                key: const ValueKey('privacy-policy-link'),
+                                contentPadding: EdgeInsets.zero,
+                                leading: const Icon(Icons.privacy_tip_outlined),
+                                title: const Text('Privacy Policy'),
+                                subtitle: const Text(
+                                  'Learn how Reset handles your data',
+                                ),
+                                trailing: const Icon(Icons.open_in_new_rounded),
+                                onTap: () => _openExternalLink(
+                                  _privacyPolicyUri,
+                                  'the Privacy Policy',
+                                ),
+                              ),
+                              const _TileDivider(),
+                              ListTile(
+                                key: const ValueKey('support-link'),
+                                contentPadding: EdgeInsets.zero,
+                                leading: const Icon(Icons.help_outline_rounded),
+                                title: const Text('Support'),
+                                subtitle: const Text('Get help with Reset'),
+                                trailing: const Icon(Icons.open_in_new_rounded),
+                                onTap: () =>
+                                    _openExternalLink(_supportUri, 'Support'),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
-            );
-          },
+                ],
+              );
+            },
+          ),
         ),
       ),
     );

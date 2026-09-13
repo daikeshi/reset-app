@@ -16,9 +16,69 @@ Future<void> main() async {
     storage: StorageService(),
     notifications: NotificationService(),
   );
-  await appState.initialize();
+  runApp(ResetAppLoader(appState: appState));
+}
 
-  runApp(ResetApp(appState: appState));
+class ResetAppLoader extends StatefulWidget {
+  const ResetAppLoader({super.key, required this.appState});
+
+  final ResetAppState appState;
+
+  @override
+  State<ResetAppLoader> createState() => _ResetAppLoaderState();
+}
+
+class _ResetAppLoaderState extends State<ResetAppLoader> {
+  late Future<void> _loading;
+
+  @override
+  void initState() {
+    super.initState();
+    _loading = widget.appState.initialize();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<void>(
+      future: _loading,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.done &&
+            !snapshot.hasError) {
+          return ResetApp(appState: widget.appState);
+        }
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          home: Scaffold(
+            body: SafeArea(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: snapshot.hasError
+                      ? Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text(
+                              'Could not load your saved data. Please try again.',
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 16),
+                            FilledButton(
+                              onPressed: () => setState(() {
+                                _loading = widget.appState.initialize();
+                              }),
+                              child: const Text('Retry'),
+                            ),
+                          ],
+                        )
+                      : const CircularProgressIndicator(),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
 
 class ResetApp extends StatelessWidget {
@@ -59,6 +119,7 @@ class ResetApp extends StatelessWidget {
         useMaterial3: true,
         scaffoldBackgroundColor: ResetColors.backgroundBottom,
         appBarTheme: const AppBarTheme(
+          systemOverlayStyle: SystemUiOverlayStyle.dark,
           elevation: 0,
           scrolledUnderElevation: 0,
           backgroundColor: Colors.transparent,
@@ -133,7 +194,9 @@ class _ResetShellState extends State<ResetShell> {
                     onDestinationSelected: (index) {
                       setState(() => _selectedIndex = index);
                     },
-                    backgroundColor: ResetColors.surface.withValues(alpha: 0.78),
+                    backgroundColor: ResetColors.surface.withValues(
+                      alpha: 0.78,
+                    ),
                     indicatorColor: ResetColors.primary.withValues(alpha: 0.14),
                     groupAlignment: -0.76,
                     labelType: NavigationRailLabelType.all,

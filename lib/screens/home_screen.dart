@@ -23,13 +23,17 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Timer? _timer;
   late DateTime _nextBreakDate;
+  late int _reminderInterval;
+  bool _breakOpen = false;
+  bool _isForeground = true;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _scheduleNextBreak();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
   }
@@ -37,8 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void didUpdateWidget(covariant HomeScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.appState.settings.reminderIntervalMinutes !=
-        widget.appState.settings.reminderIntervalMinutes) {
+    if (_reminderInterval != widget.appState.settings.reminderIntervalMinutes) {
       _scheduleNextBreak();
     }
   }
@@ -46,16 +49,22 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _isForeground = state == AppLifecycleState.resumed;
+    if (_isForeground) _tick();
+  }
+
   void _tick() {
-    if (!mounted) {
+    if (!mounted || !_isForeground || _breakOpen) {
       return;
     }
 
-    if (_nextBreakDate.difference(DateTime.now()).isNegative) {
-      _scheduleNextBreak();
+    if (!widget.appState.now.isBefore(_nextBreakDate)) {
       _openBreak();
     } else {
       setState(() {});
@@ -63,8 +72,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _scheduleNextBreak() {
-    _nextBreakDate = DateTime.now().add(
-      Duration(minutes: widget.appState.settings.reminderIntervalMinutes),
+    _reminderInterval = widget.appState.settings.reminderIntervalMinutes;
+    _nextBreakDate = widget.appState.now.add(
+      Duration(minutes: _reminderInterval),
     );
     if (mounted) {
       setState(() {});
@@ -72,20 +82,28 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _openBreak() async {
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute(
-        fullscreenDialog: true,
-        builder: (_) => BreakScreen(
-          appState: widget.appState,
-          onChanged: () {
-            widget.onChanged();
-            setState(() {});
-          },
+    if (_breakOpen || !mounted) return;
+    _breakOpen = true;
+    try {
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          fullscreenDialog: true,
+          builder: (_) => BreakScreen(
+            appState: widget.appState,
+            onChanged: () {
+              widget.onChanged();
+              if (mounted) setState(() {});
+            },
+          ),
         ),
-      ),
-    );
-    if (mounted) {
-      setState(() {});
+      );
+    } finally {
+      _breakOpen = false;
+      if (mounted) {
+        _scheduleNextBreak();
+        await widget.appState.restartReminders();
+        if (mounted) widget.onChanged();
+      }
     }
   }
 
@@ -106,9 +124,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 : availableWidth.clamp(0.0, double.infinity);
 
             return SingleChildScrollView(
-              physics: compact
-                  ? const BouncingScrollPhysics()
-                  : const NeverScrollableScrollPhysics(),
+              physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(
                 horizontalPadding,
                 20,
@@ -160,13 +176,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
   double get _progress {
     final interval = widget.appState.settings.reminderIntervalMinutes * 60;
-    final remaining = _nextBreakDate.difference(DateTime.now()).inSeconds;
+    final remaining =
+        _nextBreakDate.difference(widget.appState.now).inMilliseconds / 1000;
     return 1 - (remaining / interval);
   }
 
   String get _timeRemaining {
-    final remaining = _nextBreakDate.difference(DateTime.now());
-    final seconds = remaining.isNegative ? 0 : remaining.inSeconds;
+    final remaining = _nextBreakDate.difference(widget.appState.now);
+    final seconds = remaining.isNegative
+        ? 0
+        : (remaining.inMilliseconds / 1000).ceil();
     final minutesPart = (seconds ~/ 60).toString().padLeft(2, '0');
     final secondsPart = (seconds % 60).toString().padLeft(2, '0');
     return '$minutesPart:$secondsPart';

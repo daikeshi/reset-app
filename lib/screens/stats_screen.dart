@@ -18,83 +18,86 @@ class StatsScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('Stats')),
       body: DecoratedBox(
         decoration: ResetDecorations.screen(),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final wide = constraints.maxWidth >= 1000;
-            final maxContentWidth = wide ? 980.0 : 760.0;
-            final topCards = Row(
-              children: [
-                Expanded(
-                  child: StatCard(
-                    title: 'Today',
-                    value: appState.breaksToday.toString(),
-                    subtitle: 'breaks',
-                    icon: Icons.wb_sunny_rounded,
-                    color: ResetColors.warmAccent,
+        child: SafeArea(
+          top: false,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final wide = constraints.maxWidth >= 1000;
+              final maxContentWidth = wide ? 980.0 : 760.0;
+              final topCards = Row(
+                children: [
+                  Expanded(
+                    child: StatCard(
+                      title: 'Today',
+                      value: appState.breaksToday.toString(),
+                      subtitle: 'breaks',
+                      icon: Icons.wb_sunny_rounded,
+                      color: ResetColors.warmAccent,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: StatCard(
-                    title: 'This Week',
-                    value: appState.breaksThisWeek.toString(),
-                    subtitle: 'breaks',
-                    icon: Icons.calendar_month_rounded,
-                    color: ResetColors.accentBlue,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: StatCard(
+                      title: 'This Week',
+                      value: appState.breaksThisWeek.toString(),
+                      subtitle: 'breaks',
+                      icon: Icons.calendar_month_rounded,
+                      color: ResetColors.accentBlue,
+                    ),
                   ),
-                ),
-              ],
-            );
+                ],
+              );
 
-            return ListView(
-              padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
-              children: [
-                Center(
-                  child: SizedBox(
-                    width: maxContentWidth,
-                    child: wide
-                        ? Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  children: [
-                                    topCards,
-                                    const SizedBox(height: 18),
-                                    _StreakCard(
-                                      streak: appState.currentStreak,
-                                    ),
-                                    const SizedBox(height: 18),
-                                    _TotalCard(appState: appState),
-                                  ],
+              return ListView(
+                padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
+                children: [
+                  Center(
+                    child: SizedBox(
+                      width: maxContentWidth,
+                      child: wide
+                          ? Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    children: [
+                                      topCards,
+                                      const SizedBox(height: 18),
+                                      _StreakCard(
+                                        streak: appState.currentStreak,
+                                      ),
+                                      const SizedBox(height: 18),
+                                      _TotalCard(appState: appState),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(width: 18),
-                              Expanded(
-                                child: _ActivityChart(
+                                const SizedBox(width: 18),
+                                Expanded(
+                                  child: _ActivityChart(
+                                    breakdown: appState.activityBreakdown,
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Column(
+                              children: [
+                                topCards,
+                                const SizedBox(height: 18),
+                                _StreakCard(streak: appState.currentStreak),
+                                const SizedBox(height: 18),
+                                _TotalCard(appState: appState),
+                                const SizedBox(height: 18),
+                                _ActivityChart(
                                   breakdown: appState.activityBreakdown,
                                 ),
-                              ),
-                            ],
-                          )
-                        : Column(
-                            children: [
-                              topCards,
-                              const SizedBox(height: 18),
-                              _StreakCard(streak: appState.currentStreak),
-                              const SizedBox(height: 18),
-                              _TotalCard(appState: appState),
-                              const SizedBox(height: 18),
-                              _ActivityChart(
-                                breakdown: appState.activityBreakdown,
-                              ),
-                            ],
-                          ),
+                              ],
+                            ),
+                    ),
                   ),
-                ),
-              ],
-            );
-          },
+                ],
+              );
+            },
+          ),
         ),
       ),
     );
@@ -230,6 +233,11 @@ class _ActivityChart extends StatelessWidget {
         .where((type) => (breakdown[type] ?? 0) > 0)
         .map((type) => MapEntry(type, breakdown[type]!))
         .toList();
+    final maxCount = entries.fold<int>(
+      0,
+      (maximum, entry) => entry.value > maximum ? entry.value : maximum,
+    );
+    final axisInterval = maxCount <= 5 ? 1.0 : (maxCount / 5).ceilToDouble();
 
     return _Panel(
       child: Column(
@@ -280,10 +288,12 @@ class _ActivityChart extends StatelessWidget {
               child: BarChart(
                 BarChartData(
                   alignment: BarChartAlignment.spaceAround,
+                  minY: 0,
                   barTouchData: BarTouchData(enabled: false),
                   borderData: FlBorderData(show: false),
                   gridData: FlGridData(
                     drawVerticalLine: false,
+                    horizontalInterval: axisInterval,
                     getDrawingHorizontalLine: (value) =>
                         FlLine(color: ResetColors.border, strokeWidth: 1),
                   ),
@@ -298,7 +308,11 @@ class _ActivityChart extends StatelessWidget {
                       sideTitles: SideTitles(
                         showTitles: true,
                         reservedSize: 28,
+                        interval: axisInterval,
                         getTitlesWidget: (value, meta) {
+                          if (value != value.roundToDouble()) {
+                            return const SizedBox.shrink();
+                          }
                           return Text(
                             value.toInt().toString(),
                             style: Theme.of(context).textTheme.labelSmall

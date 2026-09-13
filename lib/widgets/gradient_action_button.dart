@@ -32,6 +32,7 @@ class GradientActionButton extends StatelessWidget {
       button: true,
       enabled: enabled,
       label: semanticLabel ?? label,
+      onTap: onPressed,
       child: DecoratedBox(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(17),

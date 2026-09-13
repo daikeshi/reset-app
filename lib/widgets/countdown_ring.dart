@@ -70,26 +70,32 @@ class CountdownRing extends StatelessWidget {
               size: Size.square(size - 40),
               painter: _RingPainter(progress: clampedProgress),
             ),
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  label,
-                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                    color: ResetColors.ink,
-                    fontWeight: FontWeight.w900,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
+            Padding(
+              padding: const EdgeInsets.all(28),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      label,
+                      style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                        color: ResetColors.ink,
+                        fontWeight: FontWeight.w900,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      caption,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: ResetColors.muted,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  caption,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: ResetColors.muted,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
+              ),
             ),
           ],
         ),

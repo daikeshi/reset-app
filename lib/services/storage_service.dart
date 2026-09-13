@@ -18,10 +18,7 @@ class StorageService implements ResetStorage {
   @override
   Future<UserSettings> loadSettings() async {
     final encoded = await _preferences.getString(_settingsKey);
-    if (encoded == null) {
-      return const UserSettings();
-    }
-
+    if (encoded == null) return const UserSettings();
     try {
       final json = jsonDecode(encoded);
       if (json is Map<String, Object?>) {
@@ -45,20 +42,22 @@ class StorageService implements ResetStorage {
   @override
   Future<List<BreakLog>> loadBreakLogs() async {
     final encoded = await _preferences.getString(_logsKey);
-    if (encoded == null) {
-      return const [];
-    }
-
+    if (encoded == null) return const [];
     try {
       final json = jsonDecode(encoded);
       if (json is! List) {
         return const [];
       }
 
-      return json
-          .whereType<Map>()
-          .map((item) => BreakLog.fromJson(Map<String, Object?>.from(item)))
-          .toList();
+      final logs = <BreakLog>[];
+      for (final item in json.whereType<Map>()) {
+        try {
+          logs.add(BreakLog.fromJson(Map<String, Object?>.from(item)));
+        } catch (_) {
+          // Keep valid history even when an individual record is damaged.
+        }
+      }
+      return logs;
     } catch (_) {
       return const [];
     }

@@ -37,11 +37,15 @@ flutter devices
 
 ```bash
 flutter analyze
-dart test
+flutter test
 ```
 
-`flutter test` may also be used in environments where the local Flutter test
-host is available.
+Use `flutter test` for both unit and widget tests; plain `dart test` cannot run
+the Flutter widget tests. Run `TZ=America/New_York flutter test` to also exercise
+streak calculations across daylight-saving transitions.
+
+Quiet hours are currently displayed as a reference only; reminders continue
+overnight. Local notifications are supported on iOS, macOS, and Android.
 
 ## Project Structure
 

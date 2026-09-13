@@ -1,4 +1,4 @@
-import 'dart:async';
+import 'dart:developer' as developer;
 
 import '../models/activity_type.dart';
 import '../models/break_log.dart';
@@ -44,10 +44,14 @@ class ResetAppState {
   UserSettings _settings = const UserSettings();
   List<BreakLog> _breakLogs = [];
   bool _isLoaded = false;
+  String? _notificationError;
+  int _logSequence = 0;
 
   UserSettings get settings => _settings;
   List<BreakLog> get breakLogs => List.unmodifiable(_breakLogs);
   bool get isLoaded => _isLoaded;
+  DateTime get now => _now();
+  String? get notificationError => _notificationError;
 
   int get breaksToday {
     final today = _dateOnly(_now());
@@ -81,7 +85,7 @@ class ResetAppState {
 
     var cursor = _dateOnly(_now());
     if ((completedByDay[cursor] ?? 0) < 3) {
-      final yesterday = cursor.subtract(const Duration(days: 1));
+      final yesterday = DateTime(cursor.year, cursor.month, cursor.day - 1);
       if ((completedByDay[yesterday] ?? 0) >= 3) {
         cursor = yesterday;
       } else {
@@ -92,7 +96,7 @@ class ResetAppState {
     var streak = 0;
     while ((completedByDay[cursor] ?? 0) >= 3) {
       streak += 1;
-      cursor = cursor.subtract(const Duration(days: 1));
+      cursor = DateTime(cursor.year, cursor.month, cursor.day - 1);
     }
     return streak;
   }
@@ -119,14 +123,29 @@ class ResetAppState {
     _breakLogs = loadedLogs;
     _isLoaded = true;
 
-    await notifications.initialize();
-    if (_settings.notificationsEnabled) {
-      await notifications.scheduleBreakReminder(_settings);
+    try {
+      await notifications.initialize();
+      if (_settings.notificationsEnabled) {
+        final granted = await notifications.requestAuthorization(
+          sound: _settings.soundEnabled,
+        );
+        if (!granted) {
+          await _updateSettings(
+            _settings.copyWith(notificationsEnabled: false),
+          );
+        }
+      }
+      await restartReminders();
+    } catch (error, stackTrace) {
+      await _handleNotificationFailure(error, stackTrace);
     }
   }
 
-  void logCompletedBreak(ActivityType type, {required int durationSeconds}) {
-    _logBreak(
+  Future<void> logCompletedBreak(
+    ActivityType type, {
+    required int durationSeconds,
+  }) {
+    return _logBreak(
       BreakLog(
         id: _newLogId(),
         timestamp: _now(),
@@ -137,8 +156,8 @@ class ResetAppState {
     );
   }
 
-  void logSkippedBreak(ActivityType type) {
-    _logBreak(
+  Future<void> logSkippedBreak(ActivityType type) {
+    return _logBreak(
       BreakLog(
         id: _newLogId(),
         timestamp: _now(),
@@ -150,61 +169,124 @@ class ResetAppState {
   }
 
   Future<void> setReminderInterval(int minutes) async {
-    _settings = _settings.copyWith(reminderIntervalMinutes: minutes);
-    await _saveSettingsAndReschedule();
+    await _updateSettings(
+      _settings.copyWith(
+        reminderIntervalMinutes: minutes.clamp(
+          UserSettings.minReminderIntervalMinutes,
+          UserSettings.maxReminderIntervalMinutes,
+        ),
+      ),
+    );
+    await restartReminders();
   }
 
   Future<void> setBreakDuration(int minutes) async {
-    _settings = _settings.copyWith(breakDurationMinutes: minutes);
-    await _saveSettings();
+    await _updateSettings(
+      _settings.copyWith(
+        breakDurationMinutes: minutes.clamp(
+          UserSettings.minBreakDurationMinutes,
+          UserSettings.maxBreakDurationMinutes,
+        ),
+      ),
+    );
   }
 
   Future<bool> setNotificationsEnabled(bool enabled) async {
     var nextEnabled = enabled;
     if (enabled) {
-      final granted =
-          await _notifications?.requestAuthorization(
-            sound: _settings.soundEnabled,
-          ) ??
-          false;
-      nextEnabled = granted;
-    } else {
-      await _notifications?.cancelAll();
+      try {
+        nextEnabled =
+            await _notifications?.requestAuthorization(
+              sound: _settings.soundEnabled,
+            ) ??
+            false;
+      } catch (error, stackTrace) {
+        await _handleNotificationFailure(error, stackTrace);
+        return false;
+      }
     }
 
-    _settings = _settings.copyWith(notificationsEnabled: nextEnabled);
-    await _saveSettingsAndReschedule();
-    return nextEnabled;
+    await _updateSettings(
+      _settings.copyWith(notificationsEnabled: nextEnabled),
+    );
+    await restartReminders();
+    return _settings.notificationsEnabled;
   }
 
   Future<void> setSoundEnabled(bool enabled) async {
-    _settings = _settings.copyWith(soundEnabled: enabled);
-    await _saveSettingsAndReschedule();
+    if (enabled && _settings.notificationsEnabled) {
+      try {
+        await _notifications?.requestAuthorization(sound: true);
+      } catch (error, stackTrace) {
+        await _handleNotificationFailure(error, stackTrace);
+        return;
+      }
+    }
+    await _updateSettings(_settings.copyWith(soundEnabled: enabled));
+    await restartReminders();
   }
 
-  void _logBreak(BreakLog log) {
+  Future<void> _logBreak(BreakLog log) async {
     _breakLogs = [log, ..._breakLogs];
-    unawaited(_saveLogs());
-  }
-
-  Future<void> _saveSettingsAndReschedule() async {
-    await _saveSettings();
-    if (_settings.notificationsEnabled) {
-      await _notifications?.scheduleBreakReminder(_settings);
+    try {
+      await _storage?.saveBreakLogs(_breakLogs);
+    } catch (_) {
+      _breakLogs = _breakLogs.where((entry) => entry.id != log.id).toList();
+      rethrow;
     }
   }
 
-  Future<void> _saveSettings() async {
-    await _storage?.saveSettings(_settings);
+  Future<void> restartReminders() async {
+    _notificationError = null;
+    try {
+      if (_settings.notificationsEnabled) {
+        await _notifications?.scheduleBreakReminder(_settings);
+      } else {
+        await _notifications?.cancelAll();
+      }
+    } catch (error, stackTrace) {
+      await _handleNotificationFailure(error, stackTrace);
+    }
   }
 
-  Future<void> _saveLogs() async {
-    await _storage?.saveBreakLogs(_breakLogs);
+  Future<void> _updateSettings(UserSettings settings) async {
+    await _storage?.saveSettings(settings);
+    _settings = settings;
   }
 
-  String _newLogId() => _now().microsecondsSinceEpoch.toString();
+  Future<void> _handleNotificationFailure(
+    Object error,
+    StackTrace stackTrace,
+  ) async {
+    developer.log(
+      'Could not configure break reminders',
+      name: 'Reset',
+      error: error,
+      stackTrace: stackTrace,
+    );
+    _notificationError = 'Reminders are unavailable. Try enabling them again.';
+    _settings = _settings.copyWith(notificationsEnabled: false);
+    try {
+      await _notifications?.cancelAll();
+    } catch (_) {
+      // A failed notification service must not prevent local use of the app.
+    }
+    try {
+      await _storage?.saveSettings(_settings);
+    } catch (saveError, saveStack) {
+      developer.log(
+        'Could not save reminder preference',
+        name: 'Reset',
+        error: saveError,
+        stackTrace: saveStack,
+      );
+    }
+  }
+
+  String _newLogId() => '${_now().microsecondsSinceEpoch}-${_logSequence++}';
 
   static DateTime _dateOnly(DateTime date) {
-    return DateTime(date.year, date.month, date.day);
+    final local = date.toLocal();
+    return DateTime(local.year, local.month, local.day);
   }
 }

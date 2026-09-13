@@ -53,14 +53,26 @@ class UserSettings {
 
   factory UserSettings.fromJson(Map<String, Object?> json) {
     return UserSettings(
-      reminderIntervalMinutes:
-          json['reminderIntervalMinutes'] as int? ??
-          defaultReminderIntervalMinutes,
-      breakDurationMinutes: json['breakDurationMinutes'] as int? ?? 5,
+      reminderIntervalMinutes: _boundedMinutes(
+        json['reminderIntervalMinutes'],
+        defaultReminderIntervalMinutes,
+        minReminderIntervalMinutes,
+        maxReminderIntervalMinutes,
+      ),
+      breakDurationMinutes: _boundedMinutes(
+        json['breakDurationMinutes'],
+        5,
+        minBreakDurationMinutes,
+        maxBreakDurationMinutes,
+      ),
       quietHoursStart: json['quietHoursStart'] as String? ?? '22:00',
       quietHoursEnd: json['quietHoursEnd'] as String? ?? '08:00',
       notificationsEnabled: json['notificationsEnabled'] as bool? ?? true,
       soundEnabled: json['soundEnabled'] as bool? ?? true,
     );
+  }
+
+  static int _boundedMinutes(Object? value, int fallback, int min, int max) {
+    return (value is int ? value : fallback).clamp(min, max);
   }
 }

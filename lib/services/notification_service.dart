@@ -9,15 +9,20 @@ class NotificationService implements ResetNotifications {
     : _plugin = plugin ?? FlutterLocalNotificationsPlugin();
 
   static const _breakReminderId = 1001;
-  static const _channelId = 'break_reminders';
   static const _channelName = 'Break reminders';
 
   final FlutterLocalNotificationsPlugin _plugin;
   bool _initialized = false;
 
+  bool get _isSupported =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.iOS ||
+          defaultTargetPlatform == TargetPlatform.macOS ||
+          defaultTargetPlatform == TargetPlatform.android);
+
   @override
   Future<void> initialize() async {
-    if (_initialized || kIsWeb) {
+    if (_initialized || !_isSupported) {
       return;
     }
 
@@ -41,7 +46,7 @@ class NotificationService implements ResetNotifications {
 
   @override
   Future<bool> requestAuthorization({required bool sound}) async {
-    if (kIsWeb) {
+    if (!_isSupported) {
       return false;
     }
 
@@ -63,21 +68,27 @@ class NotificationService implements ResetNotifications {
         >()
         ?.requestNotificationsPermission();
 
-    return iosGranted ?? macGranted ?? androidGranted ?? true;
+    return iosGranted ?? macGranted ?? androidGranted ?? false;
   }
 
   @override
   Future<void> scheduleBreakReminder(UserSettings settings) async {
-    if (kIsWeb || settings.reminderIntervalMinutes <= 0) {
+    if (!_isSupported) {
       return;
     }
 
     await initialize();
     await cancelAll();
+    if (!settings.notificationsEnabled ||
+        settings.reminderIntervalMinutes <= 0) {
+      return;
+    }
 
     final details = NotificationDetails(
       android: AndroidNotificationDetails(
-        _channelId,
+        settings.soundEnabled
+            ? 'break_reminders_sound'
+            : 'break_reminders_silent',
         _channelName,
         channelDescription: 'Reminder alerts for taking healthy breaks.',
         importance: Importance.defaultImportance,
@@ -102,7 +113,7 @@ class NotificationService implements ResetNotifications {
 
   @override
   Future<void> cancelAll() async {
-    if (kIsWeb) {
+    if (!_isSupported) {
       return;
     }
 
