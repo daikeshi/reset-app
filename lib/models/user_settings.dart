@@ -16,7 +16,7 @@ class UserSettings {
   final bool soundEnabled;
 
   static const defaultReminderIntervalMinutes = 55;
-  static const minReminderIntervalMinutes = 30;
+  static const minReminderIntervalMinutes = 1;
   static const maxReminderIntervalMinutes = 120;
   static const minBreakDurationMinutes = 1;
   static const maxBreakDurationMinutes = 10;

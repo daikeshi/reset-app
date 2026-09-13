@@ -25,25 +25,15 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Timer? _timer;
-  late DateTime _nextBreakDate;
-  late int _reminderInterval;
   bool _breakOpen = false;
   bool _isForeground = true;
+  bool _isStarting = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _scheduleNextBreak();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
-  }
-
-  @override
-  void didUpdateWidget(covariant HomeScreen oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (_reminderInterval != widget.appState.settings.reminderIntervalMinutes) {
-      _scheduleNextBreak();
-    }
   }
 
   @override
@@ -60,31 +50,44 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   void _tick() {
-    if (!mounted || !_isForeground || _breakOpen) {
+    final deadline = widget.appState.focusDeadline;
+    if (!mounted ||
+        !_isForeground ||
+        _breakOpen ||
+        _isStarting ||
+        deadline == null) {
       return;
     }
 
-    if (!widget.appState.now.isBefore(_nextBreakDate)) {
+    if (!widget.appState.now.isBefore(deadline)) {
       _openBreak();
     } else {
       setState(() {});
     }
   }
 
-  void _scheduleNextBreak() {
-    _reminderInterval = widget.appState.settings.reminderIntervalMinutes;
-    _nextBreakDate = widget.appState.now.add(
-      Duration(minutes: _reminderInterval),
-    );
-    if (mounted) {
-      setState(() {});
+  Future<void> _startFocus() async {
+    if (_isStarting || _breakOpen || widget.appState.isFocusing) return;
+    setState(() => _isStarting = true);
+    await widget.appState.startFocus();
+    if (!mounted) return;
+    setState(() => _isStarting = false);
+    widget.onChanged();
+    final error = widget.appState.notificationError;
+    if (error != null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error)));
     }
   }
 
   Future<void> _openBreak() async {
-    if (_breakOpen || !mounted) return;
+    if (_breakOpen || _isStarting || !mounted) return;
     _breakOpen = true;
     try {
+      await widget.appState.stopFocus();
+      if (!mounted) return;
+      widget.onChanged();
       await Navigator.of(context).push<void>(
         MaterialPageRoute(
           fullscreenDialog: true,
@@ -100,9 +103,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     } finally {
       _breakOpen = false;
       if (mounted) {
-        _scheduleNextBreak();
-        await widget.appState.restartReminders();
-        if (mounted) widget.onChanged();
+        setState(() {});
+        widget.onChanged();
       }
     }
   }
@@ -146,7 +148,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         CountdownRing(
                           progress: _progress,
                           label: _timeRemaining,
-                          caption: 'until break',
+                          caption: widget.appState.isFocusing
+                              ? 'until break'
+                              : 'ready to focus',
                           size: ringSize,
                         ),
                         SizedBox(height: compact ? 18 : 24),
@@ -155,11 +159,36 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         SizedBox(
                           width: double.infinity,
                           child: GradientActionButton(
+                            key: const ValueKey('home-focus-action'),
+                            label: _isStarting
+                                ? 'Starting…'
+                                : widget.appState.isFocusing
+                                ? 'Focus Running'
+                                : 'Start Focus',
+                            icon: widget.appState.isFocusing
+                                ? Icons.timer_outlined
+                                : Icons.play_arrow_rounded,
+                            onPressed:
+                                _isStarting ||
+                                    widget.appState.isFocusing ||
+                                    _breakOpen
+                                ? null
+                                : _startFocus,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
                             key: const ValueKey('home-primary-action'),
-                            label: 'Take Break Now',
-                            semanticLabel: 'Take a break now',
-                            icon: Icons.play_arrow_rounded,
-                            onPressed: _openBreak,
+                            label: const Text('Take Break Now'),
+                            icon: const Icon(Icons.free_breakfast_outlined),
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size.fromHeight(48),
+                            ),
+                            onPressed: _isStarting || _breakOpen
+                                ? null
+                                : _openBreak,
                           ),
                         ),
                       ],
@@ -176,16 +205,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   double get _progress {
     final interval = widget.appState.settings.reminderIntervalMinutes * 60;
-    final remaining =
-        _nextBreakDate.difference(widget.appState.now).inMilliseconds / 1000;
-    return 1 - (remaining / interval);
+    return widget.appState.isFocusing ? 1 - (_secondsRemaining / interval) : 0;
+  }
+
+  int get _secondsRemaining {
+    final interval = widget.appState.settings.reminderIntervalMinutes * 60;
+    final deadline = widget.appState.focusDeadline;
+    if (deadline == null) return interval;
+    return (deadline.difference(widget.appState.now).inMilliseconds / 1000)
+        .ceil()
+        .clamp(0, interval);
   }
 
   String get _timeRemaining {
-    final remaining = _nextBreakDate.difference(widget.appState.now);
-    final seconds = remaining.isNegative
-        ? 0
-        : (remaining.inMilliseconds / 1000).ceil();
+    final seconds = _secondsRemaining;
     final minutesPart = (seconds ~/ 60).toString().padLeft(2, '0');
     final secondsPart = (seconds % 60).toString().padLeft(2, '0');
     return '$minutesPart:$secondsPart';

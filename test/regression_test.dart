@@ -122,6 +122,7 @@ void main() {
         notifications: notifications,
       );
       await state.initialize();
+      await state.startFocus();
       notifications.failSchedule = true;
       await state.setReminderInterval(30);
       expect(state.settings.reminderIntervalMinutes, 30);
@@ -143,6 +144,8 @@ void main() {
       settings: const UserSettings(notificationsEnabled: false),
     );
     await tester.pumpWidget(ResetApp(appState: state));
+    await tester.tap(find.byKey(const ValueKey('home-focus-action')));
+    await tester.pumpAndSettle();
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     now = now.add(const Duration(hours: 1));
     await tester.pump(const Duration(seconds: 1));
@@ -171,6 +174,9 @@ void main() {
     );
     await state.initialize();
     await tester.pumpWidget(ResetApp(appState: state));
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('home-primary-action')),
+    );
     await tester.tap(find.byKey(const ValueKey('home-primary-action')));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Skip this break'));
@@ -291,6 +297,8 @@ void main() {
       settings: const UserSettings(notificationsEnabled: false),
     );
     await tester.pumpWidget(ResetApp(appState: state));
+    await tester.tap(find.byKey(const ValueKey('home-focus-action')));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
     await tester.enterText(
@@ -318,6 +326,9 @@ void main() {
       ),
     );
     await tester.pumpWidget(ResetApp(appState: state));
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('home-primary-action')),
+    );
     await tester.tap(find.byKey(const ValueKey('home-primary-action')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('break-primary-action')));
@@ -346,7 +357,12 @@ void main() {
       settings: const UserSettings(notificationsEnabled: false),
     );
     await tester.pumpWidget(ResetApp(appState: state));
+    await tester.tap(find.byKey(const ValueKey('home-focus-action')));
+    await tester.pumpAndSettle();
     now = now.add(const Duration(minutes: 54));
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('home-primary-action')),
+    );
     await tester.tap(find.byKey(const ValueKey('home-primary-action')));
     await tester.pumpAndSettle();
     now = now.add(const Duration(minutes: 2));

@@ -46,12 +46,28 @@ class ResetAppState {
   bool _isLoaded = false;
   String? _notificationError;
   int _logSequence = 0;
+  DateTime? _focusDeadline;
 
   UserSettings get settings => _settings;
   List<BreakLog> get breakLogs => List.unmodifiable(_breakLogs);
   bool get isLoaded => _isLoaded;
   DateTime get now => _now();
   String? get notificationError => _notificationError;
+  DateTime? get focusDeadline => _focusDeadline;
+  bool get isFocusing => _focusDeadline != null;
+
+  Future<void> startFocus() async {
+    if (isFocusing) return;
+    _focusDeadline = _now().add(
+      Duration(minutes: _settings.reminderIntervalMinutes),
+    );
+    await restartReminders();
+  }
+
+  Future<void> stopFocus() async {
+    _focusDeadline = null;
+    await restartReminders();
+  }
 
   int get breaksToday {
     final today = _dateOnly(_now());
@@ -177,6 +193,11 @@ class ResetAppState {
         ),
       ),
     );
+    if (isFocusing) {
+      _focusDeadline = _now().add(
+        Duration(minutes: _settings.reminderIntervalMinutes),
+      );
+    }
     await restartReminders();
   }
 
@@ -239,7 +260,7 @@ class ResetAppState {
   Future<void> restartReminders() async {
     _notificationError = null;
     try {
-      if (_settings.notificationsEnabled) {
+      if (_settings.notificationsEnabled && isFocusing) {
         await _notifications?.scheduleBreakReminder(_settings);
       } else {
         await _notifications?.cancelAll();

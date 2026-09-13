@@ -133,8 +133,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 contentPadding: EdgeInsets.zero,
                                 title: const Text('Enable Notifications'),
                                 subtitle: settings.notificationsEnabled
-                                    ? const Text(
-                                        'Break reminders are scheduled',
+                                    ? Text(
+                                        widget.appState.isFocusing
+                                            ? 'Break reminders are scheduled'
+                                            : 'Reminders start with your focus timer',
                                       )
                                     : const Text(
                                         'Turn on reminders for healthy breaks',
@@ -227,7 +229,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               const ListTile(
                                 contentPadding: EdgeInsets.zero,
                                 title: Text('Version'),
-                                trailing: Text('1.0.0'),
+                                trailing: Text('1.0.1'),
                               ),
                             ],
                           ),

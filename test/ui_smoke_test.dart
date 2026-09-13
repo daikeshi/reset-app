@@ -80,7 +80,10 @@ void main() {
   ) async {
     final state = ResetAppState.test(
       now: () => DateTime(2026, 5, 10, 12),
-      settings: const UserSettings(notificationsEnabled: false),
+      settings: const UserSettings(
+        notificationsEnabled: false,
+        reminderIntervalMinutes: 2,
+      ),
     );
 
     await tester.pumpWidget(ResetApp(appState: state));
@@ -88,15 +91,15 @@ void main() {
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
     expect(find.text('Focus Time'), findsOneWidget);
-    expect(state.settings.reminderIntervalMinutes, 55);
+    expect(state.settings.reminderIntervalMinutes, 2);
 
     await tester.tap(find.byKey(const ValueKey('focus-time-decrement')));
     await tester.pumpAndSettle();
-    expect(state.settings.reminderIntervalMinutes, 54);
+    expect(state.settings.reminderIntervalMinutes, 1);
 
     await tester.tap(find.byKey(const ValueKey('focus-time-increment')));
     await tester.pumpAndSettle();
-    expect(state.settings.reminderIntervalMinutes, 55);
+    expect(state.settings.reminderIntervalMinutes, 2);
   });
 
   testWidgets('settings can adjust break duration in one minute increments', (
@@ -138,11 +141,11 @@ void main() {
 
     await tester.enterText(
       find.byKey(const ValueKey('focus-time-input')),
-      '72',
+      '25',
     );
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
-    expect(state.settings.reminderIntervalMinutes, 72);
+    expect(state.settings.reminderIntervalMinutes, 25);
 
     await tester.enterText(
       find.byKey(const ValueKey('break-duration-input')),
@@ -162,6 +165,9 @@ void main() {
     );
 
     await tester.pumpWidget(ResetApp(appState: state));
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('home-primary-action')),
+    );
     await tester.tap(find.byKey(const ValueKey('home-primary-action')));
     await tester.pumpAndSettle();
 

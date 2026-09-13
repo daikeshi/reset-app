@@ -4,7 +4,8 @@ A break reminder app for remote workers.
 
 ## Features
 
-- Configurable break reminders
+- Configurable focus time from 1 to 120 minutes
+- Start Focus button to begin each focus session
 - Random break activities with suggestions
 - Guided break timer
 - Streak tracking
@@ -32,6 +33,11 @@ To list available targets:
 ```bash
 flutter devices
 ```
+
+The focus timer starts when you tap **Start Focus**. Taking a break ends the
+session and cancels its reminders. After the break, tap **Start Focus** to begin
+again. A fresh app launch starts idle; notification permission alone does not
+start reminders.
 
 ## Test
 

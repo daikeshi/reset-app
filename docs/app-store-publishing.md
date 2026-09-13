@@ -4,6 +4,15 @@ Reset is prepared as a Flutter app with iOS and macOS targets. The iOS app
 builds successfully with automatic signing for the SquirrelJet development
 team. The remaining release steps require App Store Connect access.
 
+For the current patch, see [Reset 1.0.1 release notes](releases/1.0.1.md).
+The checked-in `ios/ExportOptions.plist` exports an App Store Connect IPA while
+preserving the version and build number from `pubspec.yaml`:
+
+```sh
+env LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 \
+  flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
+```
+
 ## Current Readiness (July 21, 2026)
 
 - `flutter analyze`: passes with no issues.

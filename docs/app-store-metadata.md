@@ -77,11 +77,13 @@ audience rating available under the current rating system.
 
 **Review notes:**
 
-No account or login is required. To test the main flow, open the Home tab and
-tap “Take Break Now,” then tap “Start Timer.” To test reminders, open Settings,
-enable Notifications, and grant notification permission when prompted. All
-reminders are scheduled locally. Settings, streaks, and break history remain on
-the device; the app has no server dependency.
+No account or login is required. In Settings, set Focus Time to 1 minute,
+enable Notifications, and grant notification permission when prompted. Open
+Home and tap “Start Focus.” The countdown begins and a break reminder is
+scheduled locally. You can also tap “Take Break Now,” then “Start Timer” to
+begin a guided break. After a break, tap “Start Focus” for the next session.
+Settings, streaks, and break history remain on the device; the app has no server
+dependency.
 
 Add the reviewer contact name, email address, and telephone number in App Store
 Connect.
