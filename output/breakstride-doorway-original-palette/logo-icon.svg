@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title"><title id="title">Breakstride: Open Doorway in the original violet and blue palette</title><defs>
+<linearGradient id="background" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6A14DE"/><stop offset=".52" stop-color="#3726D0"/><stop offset="1" stop-color="#1A6BF5"/></linearGradient>
+<linearGradient id="doorway" gradientUnits="userSpaceOnUse" x1="119" y1="113" x2="397" y2="380"><stop offset="0" stop-color="#F6CAFB"/><stop offset="1" stop-color="#9AC9FB"/></linearGradient>
+</defs><rect width="512" height="512" rx="112" fill="url(#background)"/><g fill="url(#doorway)"><path d="M143 369V241C143 178 188 137 247 137S351 178 351 241V298" fill="none" stroke="url(#doorway)" stroke-width="47" stroke-linecap="round"/><rect x="255" y="344" width="118" height="47" rx="23.5"/></g></svg>

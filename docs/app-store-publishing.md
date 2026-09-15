@@ -1,10 +1,14 @@
-# App Store Publishing Checklist
+# Breakstride App Store Publishing Checklist
 
-Reset is prepared as a Flutter app with iOS and macOS targets. The iOS app
-builds successfully with automatic signing for the SquirrelJet development
-team. The remaining release steps require App Store Connect access.
+Breakstride (previously SquirrelJet Reset) is prepared as a Flutter app with iOS
+and macOS targets. The previous iOS release built successfully with automatic
+signing for the SquirrelJet development team. The remaining release steps
+require App Store Connect access.
 
-For the current patch, see [Reset 1.0.1 release notes](releases/1.0.1.md).
+The rebrand is a local draft, separate from the previously submitted 1.0.1 build.
+See [Breakstride branding notes](branding/breakstride.md) for the remaining
+rebrand release work, and [Reset 1.0.1 release notes](releases/1.0.1.md) for the
+previous patch.
 The checked-in `ios/ExportOptions.plist` exports an App Store Connect IPA while
 preserving the version and build number from `pubspec.yaml`:
 
@@ -13,7 +17,7 @@ env LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 \
   flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
 ```
 
-## Current Readiness (July 21, 2026)
+## Initial Release Validation (July 21, 2026)
 
 - `flutter analyze`: passes with no issues.
 - `flutter test`: all 11 tests pass.
@@ -43,8 +47,8 @@ env LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 \
 
 ## 2. Choose the Permanent Bundle ID
 
-Bundle IDs cannot be changed after a build is uploaded. Reset uses the permanent
-publisher-owned identifier `com.squirreljet.reset`.
+Bundle IDs cannot be changed after a build is uploaded. Breakstride uses the
+permanent publisher-owned identifier `com.squirreljet.reset`.
 
 After registering the identifier in the Apple Developer account, update
 `PRODUCT_BUNDLE_IDENTIFIER` for the Runner target in
@@ -82,19 +86,15 @@ Test the release on at least one physical iPhone. In particular, verify that:
 - changing focus time, break duration, sound, and notification settings works;
 - layouts work on both iPhone and iPad, because the target supports both.
 
-## 5. Create the App Store Connect Record
+## 5. Use the Existing App Store Connect Record
 
-The Account Holder must accept any pending agreements first. In App Store
-Connect, choose Apps > + > New App and enter:
+Use app ID `6792412427`, originally listed as SquirrelJet Reset. Update this
+record for the rebrand so existing customers receive an update. Keep its bundle
+ID, SKU, and seller identity.
 
-- Platforms: iOS (add macOS later unless it is ready for the same launch).
-- Name: `SquirrelJet Reset`.
-- Primary language: your listing language.
-- Bundle ID: the exact permanent ID configured in Xcode.
-- SKU: an internal immutable value such as `reset-ios-001`.
-- User access: Full Access unless the team needs restrictions.
-
-The app record must exist before uploading the first build.
+The proposed new name is `Breakstride: Active Breaks`, with subtitle
+`Focus. Move. Recharge.`. Confirm that App Store Connect accepts the name when
+the metadata is editable.
 
 ## 6. Prepare Product-Page Information
 
@@ -104,7 +104,7 @@ The current app has no accounts, purchases, or server dependency, so review
 notes should say that no login is required and explain how to enable and test
 local break reminders.
 
-A public privacy policy URL is required even though Reset does not collect
+A public privacy policy URL is required even though Breakstride does not collect
 data. In App Privacy, choose "No, we do not collect data from this app" only if
 the shipped app and every included third-party SDK still match that statement.
 The policy should explain that settings and break history remain on the device

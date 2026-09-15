@@ -47,6 +47,7 @@ class _ResetAppLoaderState extends State<ResetAppLoader> {
           return ResetApp(appState: widget.appState);
         }
         return MaterialApp(
+          title: 'Breakstride',
           debugShowCheckedModeBanner: false,
           home: Scaffold(
             body: SafeArea(
@@ -89,7 +90,7 @@ class ResetApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Reset',
+      title: 'Breakstride',
       debugShowCheckedModeBanner: false,
       builder: (context, child) {
         return AnnotatedRegion<SystemUiOverlayStyle>(

@@ -1,11 +1,11 @@
 {
-    "name": "reset",
-    "short_name": "reset",
+    "name": "Breakstride",
+    "short_name": "Breakstride",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Breakstride helps you focus, move, and recharge with guided workday breaks.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

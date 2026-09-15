@@ -243,7 +243,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 leading: const Icon(Icons.privacy_tip_outlined),
                                 title: const Text('Privacy Policy'),
                                 subtitle: const Text(
-                                  'Learn how Reset handles your data',
+                                  'Learn how Breakstride handles your data',
                                 ),
                                 trailing: const Icon(Icons.open_in_new_rounded),
                                 onTap: () => _openExternalLink(
@@ -257,7 +257,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 contentPadding: EdgeInsets.zero,
                                 leading: const Icon(Icons.help_outline_rounded),
                                 title: const Text('Support'),
-                                subtitle: const Text('Get help with Reset'),
+                                subtitle: const Text(
+                                  'Get help with Breakstride',
+                                ),
                                 trailing: const Icon(Icons.open_in_new_rounded),
                                 onTap: () =>
                                     _openExternalLink(_supportUri, 'Support'),

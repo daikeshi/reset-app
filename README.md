@@ -1,6 +1,13 @@
-# Reset — Flutter App
+# Breakstride — Flutter App
 
-A break reminder app for remote workers.
+Focus. Move. Recharge.
+
+Breakstride is a break reminder app for remote workers, previously named
+SquirrelJet Reset. It pairs focus sessions with guided workday breaks.
+
+The rebrand is prepared locally for a future release. See
+[the branding notes](docs/branding/breakstride.md) for the store copy and remaining
+release work.
 
 ## Features
 

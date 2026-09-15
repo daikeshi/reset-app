@@ -240,7 +240,7 @@ class _Header extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Reset',
+                'Breakstride',
                 style: Theme.of(context).textTheme.displaySmall?.copyWith(
                   color: ResetColors.ink,
                   fontWeight: FontWeight.w900,
@@ -249,7 +249,7 @@ class _Header extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                'A calm rhythm for your workday',
+                'Focus. Move. Recharge.',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: ResetColors.muted,
                   fontWeight: FontWeight.w600,

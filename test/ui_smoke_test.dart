@@ -60,7 +60,7 @@ void main() {
       tester.getRect(find.text('mins moved')).right,
       lessThanOrEqualTo(390),
     );
-    expect(find.text('Reset'), findsOneWidget);
+    expect(find.text('Breakstride'), findsOneWidget);
 
     await tester.tap(find.text('Stats'));
     await tester.pumpAndSettle();
